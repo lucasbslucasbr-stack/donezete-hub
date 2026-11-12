@@ -1,4 +1,4 @@
--- Donezete Hub v2 | LocalScript em StarterPlayerScripts no seu jogo.
+-- Donezete Hub v3 | LocalScript em StarterPlayerScripts no seu jogo.
 local Players=game:GetService('Players')
 local Run=game:GetService('RunService')
 local Input=game:GetService('UserInputService')
@@ -12,11 +12,12 @@ assert(me,'Execute no cliente')
 local pg=me:WaitForChild('PlayerGui')
 local previous=pg:FindFirstChild('PainelMira')
 if previous then previous:Destroy() end
-local defaults={aim=false,rage=false,pullLevel=2,visualEnabled=false,fovOverride=false,part=1,nearest=false,fovEnabled=false,fov=90,distance=100,speed=14,switch=false,wall=false,prediction=false,lead=.08,legit=false,smooth=50,horizontal=50,vertical=55,accel=false,decel=false,dynamic=false,micro=false,tracking=false,deadzone=3,team=false,box=false,skeleton=false,name=false,health=false,distanceESP=false,weapon=false,head=false,line=false,teamESP=false,armor=false,visibility=false,item=false,ammo=false,objective=false,radar=false,outline=false,espDistance=300,thickness=1,textSize=12,transparency=.1,color=1,saturation=100,brightness=0,contrast=0,cameraFov=70,filter=1,performance=false,preset=1,compact=false,opacity=.95,privacy=false,presentation=false,logo='',gamma=1,sharpness=0,stretch=1,effects=1}
+local defaults={aim=false,rage=false,rageStyle=1,releaseOnInput=false,legSide=1,pullLevel=2,visualEnabled=false,fovOverride=false,part=1,nearest=false,fovEnabled=false,fov=90,distance=100,speed=14,switch=false,wall=false,prediction=false,lead=.08,legit=false,smooth=50,horizontal=50,vertical=55,accel=false,decel=false,dynamic=false,micro=false,tracking=false,deadzone=3,team=false,box=false,skeleton=false,name=false,health=false,distanceESP=false,weapon=false,head=false,line=false,teamESP=false,armor=false,visibility=false,item=false,ammo=false,objective=false,radar=false,outline=false,espDistance=300,thickness=1,textSize=12,transparency=.1,color=1,saturation=100,brightness=0,contrast=0,cameraFov=70,filter=1,performance=false,preset=1,compact=false,opacity=.95,privacy=false,presentation=false,logo='',gamma=1,sharpness=0,stretch=1,effects=1}
 local cfg={}
 for k,v in pairs(defaults) do cfg[k]=v end
 local cons,visuals,markers={}, {}, {}
 local dead=false
+local resetRevision=0
 local palette={Color3.fromRGB(145,255,45),Color3.fromRGB(60,205,255),Color3.fromRGB(255,175,65),Color3.fromRGB(230,100,255)}
 local color=palette[1]
 local integration={}
@@ -32,7 +33,7 @@ local panel=make('Frame',{Size=UDim2.fromOffset(780,490),AnchorPoint=Vector2.new
 make('UICorner',{CornerRadius=UDim.new(0,12)},panel)
 make('UIStroke',{Color=color,Transparency=.6},panel)
 local scale=make('UIScale',{Scale=1},panel)
-local header=make('TextButton',{Text='DONEZETE  /  HUB  v2',Font=Enum.Font.GothamBold,TextSize=19,TextXAlignment=Enum.TextXAlignment.Left,TextColor3=color,BackgroundTransparency=1,Position=UDim2.fromOffset(20,0),Size=UDim2.new(1,-80,0,56),ZIndex=6},panel)
+local header=make('TextButton',{Text='DONEZETE  /  HUB  v3',Font=Enum.Font.GothamBold,TextSize=19,TextXAlignment=Enum.TextXAlignment.Left,TextColor3=color,BackgroundTransparency=1,Position=UDim2.fromOffset(20,0),Size=UDim2.new(1,-80,0,56),ZIndex=6},panel)
 local close=make('TextButton',{Text='×',TextSize=26,TextColor3=color,BackgroundTransparency=1,Size=UDim2.fromOffset(44,44),Position=UDim2.new(1,-48,0,5),ZIndex=7},panel)
 local tabs=make('Frame',{Position=UDim2.fromOffset(14,58),Size=UDim2.new(1,-28,0,38),BackgroundTransparency=1,ZIndex=6},panel)
 make('UIListLayout',{FillDirection=Enum.FillDirection.Horizontal,Padding=UDim.new(0,5)},tabs)
@@ -88,6 +89,7 @@ local function toggle(parent,title,key)
  local function update() b.Text=cfg[key] and 'ON' or 'OFF'; Tween:Create(b,TweenInfo.new(.12),{BackgroundColor3=cfg[key] and color or Color3.fromRGB(65,70,65)}):Play() end
  on(b.Activated,function()
   cfg[key]=not cfg[key]
+  if key=='aim' or key=='rage' then resetRevision=resetRevision+1 end
   if key=='aim' and cfg.aim then cfg.rage=false end
   if key=='rage' and cfg.rage then cfg.aim=false end
   for _,refresh in ipairs(refreshers) do refresh() end
@@ -119,16 +121,20 @@ local function choice(parent,title,key,items)
 end
 local a=page('AIMBOT')
 toggle(a,'Aimbot suave','aim')
-toggle(a,'Aimbot Rage','rage')
-choice(a,'Forca da puxada','pullLevel',{'Leve','Medio','Forte','Muito forte','Instantaneo'})
- choice(a,'Regiao: Head / Body / Leg','part',{'Cabeca','Corpo','Perna'})
+toggle(a,'Rage / manter trava','rage')
+choice(a,'Comportamento Rage','rageStyle',{'Trava direta','Entrada suave'})
+toggle(a,'Soltar Rage ao mover camera','releaseOnInput')
+choice(a,'Forca (suave / entrada suave)','pullLevel',{'Leve','Medio','Forte','Muito forte','Instantaneo'})
+choice(a,'Regiao: Head / Body / Leg','part',{'Cabeca','Corpo','Perna'})
+choice(a,'Perna preferida','legSide',{'Esquerda','Direita'})
+action(a,'Liberar alvo / retomar',function() resetRevision=resetRevision+1 end)
 toggle(a,'Alvo mais proximo (distancia)','nearest'); toggle(a,'FOV personalizado (padrao: 90 px)','fovEnabled')
 slider(a,'Raio FOV (pixels)','fov',20,300,1); slider(a,'Distancia maxima (studs)','distance',10,500,1)
 slider(a,'Velocidade de mira','speed',1,25,1); toggle(a,'Trocar apos eliminacao','switch')
-toggle(a,'Verificar visibilidade','wall'); toggle(a,'Prever movimento','prediction')
+toggle(a,'Verificar visibilidade','wall'); toggle(a,'Prever movimento (modo suave)','prediction')
 slider(a,'Antecipacao (segundos)','lead',0,.3,.01); toggle(a,'Ignorar aliados','team')
 local l=page('LEGITBOT')
-toggle(l,'Legitbot / respeitar movimento','legit'); slider(l,'Smooth Aim (%)','smooth',0,100,1)
+toggle(l,'Pausa estendida ao mover camera','legit'); slider(l,'Smooth Aim (%)','smooth',0,100,1)
 slider(l,'Suavidade horizontal','horizontal',0,100,1); slider(l,'Suavidade vertical','vertical',0,100,1)
 toggle(l,'Aceleracao gradual','accel'); toggle(l,'Desacelerar perto do alvo','decel')
 toggle(l,'Suavidade dinamica','dynamic'); toggle(l,'Microajustes','micro')
@@ -174,11 +180,12 @@ local function apply(data)
  -- Import parameters only: even old profiles must not enable features.
  for k,d in pairs(defaults) do if type(d)=='boolean' then cfg[k]=false end end
  -- Only accept numbers from our own bounded controls, with the same limits.
- local ranges={pullLevel={1,5},part={1,3},color={1,4},filter={1,4},preset={1,3},stretch={1,4},smooth={0,100},horizontal={0,100},vertical={0,100},opacity={.4,1},fov={20,300},distance={10,500},speed={1,25},lead={0,.3},deadzone={0,30},espDistance={20,1000},thickness={1,4},textSize={10,20},transparency={0,.9},saturation={0,200},brightness={-.5,.5},contrast={-.5,.5},cameraFov={40,110},gamma={.5,2},sharpness={0,1},effects={0,1}}
+ local ranges={rageStyle={1,2},legSide={1,2},pullLevel={1,5},part={1,3},color={1,4},filter={1,4},preset={1,3},stretch={1,4},smooth={0,100},horizontal={0,100},vertical={0,100},opacity={.4,1},fov={20,300},distance={10,500},speed={1,25},lead={0,.3},deadzone={0,30},espDistance={20,1000},thickness={1,4},textSize={10,20},transparency={0,.9},saturation={0,200},brightness={-.5,.5},contrast={-.5,.5},cameraFov={40,110},gamma={.5,2},sharpness={0,1},effects={0,1}}
  for k,r in pairs(ranges) do cfg[k]=math.clamp(cfg[k],r[1],r[2]) end
- for _,k in ipairs({'part','color','filter','preset','stretch','pullLevel'}) do cfg[k]=math.floor(cfg[k]) end
+ for _,k in ipairs({'part','color','filter','preset','stretch','pullLevel','rageStyle','legSide'}) do cfg[k]=math.floor(cfg[k]) end
  for _,f in ipairs(refreshers) do f() end
  logoInput.Text=cfg.logo
+ resetRevision=resetRevision+1
 end
 action(c,'Salvar configuracoes',function(b)
  remote=RS:FindFirstChild('DonezeteSettings')
@@ -195,14 +202,21 @@ end)
 action(c,'Restaurar padrao',function() apply(defaults) end)
 action(c,'Remover painel',function() gui:Destroy() end)
 selectPage('AIMBOT')
-local parts={{'Head'},{'UpperTorso','Torso','HumanoidRootPart'},{'LeftLowerLeg','Left Leg','RightLowerLeg','Right Leg'}}
+-- BEGIN PART RESOLVER
+local parts={{'Head'},{'UpperTorso','Torso','LowerTorso','HumanoidRootPart'}}
+local legs={{'LeftLowerLeg','Left Leg','LeftUpperLeg','LeftFoot'},{'RightLowerLeg','Right Leg','RightUpperLeg','RightFoot'}}
+local function resolvePart(ch,config)
+ local names=config.part==3 and legs[config.legSide] or parts[config.part]
+ for _,name in ipairs(names) do
+  local part=ch:FindFirstChild(name)
+  if part and part:IsA('BasePart') then return part end
+ end
+end
+-- END PART RESOLVER
 local function eligible(p)
  if p==me or (cfg.team and me.Team~=nil and p.Team==me.Team) then return end
  local ch=p.Character; local hum=ch and ch:FindFirstChildOfClass('Humanoid')
  if hum and hum.Health>0 then return ch,hum end
-end
-local function targetPart(ch)
- for _,name in ipairs(parts[cfg.part]) do local p=ch:FindFirstChild(name); if p and p:IsA('BasePart') then return p end end
 end
 local function visible(cam,ch,part)
  local params=RaycastParams.new(); params.FilterType=Enum.RaycastFilterType.Exclude
@@ -272,6 +286,10 @@ local performanceBackup={}
 local lastManual=0
 local stickMagnitude=0
 local touchLook={}
+local windowFocused=true
+on(Input.GamepadDisconnected,function() stickMagnitude=0 end)
+on(Input.WindowFocusReleased,function() windowFocused=false; touchLook={}; stickMagnitude=0; resetRevision=resetRevision+1 end)
+on(Input.WindowFocused,function() windowFocused=true; lastManual=os.clock() end)
 on(Input.InputBegan,function(i,processed) if not processed and i.UserInputType==Enum.UserInputType.Touch then touchLook[i]=true end end)
 on(Input.InputChanged,function(i)
  if i.UserInputType==Enum.UserInputType.MouseMovement and i.Delta.Magnitude>1 then lastManual=os.clock() end
@@ -314,32 +332,90 @@ on(gui.Destroying,function()
  for obj,state in pairs(performanceBackup) do if obj.Parent then obj.Enabled=state end end
  if integrationActive and integration.Restore then pcall(integration.Restore) end
 end)
-local locked=nil
-local blocked=false
 local heldTime=0
 local lastMode='off'
+local lastRevision=-1
+local lastCharacter=nil
+local lastCamera=nil
+local smoothFrame=nil
+local previousOutput=nil
+local lockStatus='DESLIGADO'
 -- BEGIN AIM LIMITS
-local function inAimRange(config,distance,error,onScreen)
- return onScreen and distance>=.001 and distance<=config.distance and error<=(config.fovEnabled and config.fov or 90)
+local function inAimRange(config,distance,error,onScreen,retaining)
+ if distance<.001 or distance>config.distance then return false end
+ if retaining and config.rage then return true end
+ local radius=config.fovEnabled and config.fov or 90
+ if retaining then radius=radius*1.25 end
+ return onScreen and error<=radius
 end
 -- END AIM LIMITS
-local function candidate(cam,p)
- local ch,hum=eligible(p); if not ch then return end
- local part=targetPart(ch); if not part then return end
+-- BEGIN TARGET STATE
+local function resetTarget(state)
+ state.target=nil; state.waiting=false; state.lostAt=nil; state.nextAcquire=0
+end
+local function updateTarget(state,config,sample,acquire,now)
+ if state.waiting then return nil,'AGUARDANDO REATIVACAO' end
+ local retain=config.rage or config.tracking
+ if state.target then
+  local previous=state.target
+  local candidate,reason=sample(previous,true)
+  if candidate and candidate.character~=previous.character then candidate=nil; reason='dead' end
+  if candidate then
+   state.lostAt=nil
+   if retain then state.target=candidate; return candidate,'ALVO MANTIDO' end
+   -- Avoid oscillating between almost equally aligned targets in smooth mode.
+   local challenger=acquire()
+   local oldScore=config.nearest and candidate.distance or candidate.error
+   local newScore=challenger and (config.nearest and challenger.distance or challenger.error)
+   if challenger and newScore<oldScore*.8 then state.target=challenger
+   else state.target=candidate end
+   return state.target,'ALVO ESTAVEL'
+  elseif reason=='missing' or reason=='wall' then
+   state.lostAt=state.lostAt or now
+   if now-state.lostAt<.20 then return nil,'ALVO TEMPORARIAMENTE INDISPONIVEL' end
+  end
+  if not candidate and reason=='dead' and not config.switch then
+   state.target=nil; state.waiting=true
+   return nil,'AGUARDANDO REATIVACAO'
+  end
+  state.target=nil; state.lostAt=nil
+ end
+ if now<(state.nextAcquire or 0) then return nil,'PROCURANDO NO RAIO' end
+ state.nextAcquire=now+.05
+ local best=acquire()
+ state.target=best
+ if best then state.nextAcquire=0; return best,'ALVO ADQUIRIDO' end
+ return nil,'PROCURANDO NO RAIO'
+end
+-- END TARGET STATE
+local targetState={}
+resetTarget(targetState)
+local function candidate(cam,p,retaining)
+ if p==me or p.Parent~=Players then return nil,'removed' end
+ if cfg.team and me.Team~=nil and p.Team==me.Team then return nil,'team' end
+ local ch=p.Character
+ if not ch then return nil,'missing' end
+ local hum=ch:FindFirstChildOfClass('Humanoid')
+ if not hum then return nil,'missing' end
+ if hum.Health<=0 then return nil,'dead' end
+ local part=resolvePart(ch,cfg)
+ if not part then return nil,'missing' end
  local distance=(part.Position-cam.CFrame.Position).Magnitude
- if distance<.001 or distance>cfg.distance then return end
+ if distance<.001 or distance>cfg.distance then return nil,'distance' end
  local point,screen=cam:WorldToViewportPoint(part.Position)
  local error=(Vector2.new(point.X,point.Y)-cam.ViewportSize*.5).Magnitude
- if not inAimRange(cfg,distance,error,screen) or (cfg.wall and not visible(cam,ch,part)) then return end
- return part,error,distance,hum
+ if not inAimRange(cfg,distance,error,screen,retaining) then return nil,'fov' end
+ if cfg.wall and not visible(cam,ch,part) then return nil,'wall' end
+ return {player=p,character=ch,humanoid=hum,part=part,error=error,distance=distance}
 end
 -- BEGIN AIM MATH
 local function aimAlpha(config,axis,dt,heldTime,error,distance)
- if config.pullLevel==5 or (not config.rage and config.smooth==0) then return 1 end
+ if dt<=0 then return 0 end
+ if (config.rage and config.rageStyle==1) or config.pullLevel==5 or (not config.rage and config.smooth==0) then return 1 end
  local rates={10,20,40,75}
  local rate=rates[config.pullLevel]*(config.speed/14)
  if config.rage then
-  rate=rate*1.8 -- Rage skips smoothing modifiers, but keeps manual-camera priority.
+  rate=rate*1.8 -- Used only by the smooth-entry Rage variant.
  else
   local smooth=(config.smooth+axis)/200
   rate=rate*(1.6-1.25*smooth)
@@ -353,7 +429,7 @@ end
 -- END AIM MATH
 local elapsed=0
 local maintenance=0
-Run:BindToRenderStep('DonezeteRender',Enum.RenderPriority.Camera.Value+1,function(dt)
+Run:BindToRenderStep('DonezeteRender',Enum.RenderPriority.Last.Value-1,function(dt)
  if dead then return end
  local cam=workspace.CurrentCamera; if not cam then return end
  if cfg.fovOverride then
@@ -383,41 +459,83 @@ Run:BindToRenderStep('DonezeteRender',Enum.RenderPriority.Camera.Value+1,functio
  floating.Visible=true
  -- Center hit area stays active, including over the panel, as requested.
  local own=me.Character and me.Character:FindFirstChildOfClass('Humanoid')
- local active=(cfg.aim or cfg.rage) and not panel.Visible and own and own.Health>0
+ local active=(cfg.aim or cfg.rage) and windowFocused and not panel.Visible and own and own.Health>0 and not Input:GetFocusedTextBox()
  local mode=cfg.rage and 'rage' or (cfg.aim and 'smooth' or 'off')
- if mode~=lastMode then blocked=false; locked=nil; heldTime=0; lastMode=mode end
- local best,part,error,distance
- if active and not blocked then
-  if locked then
-   local h=locked.Character and locked.Character:FindFirstChildOfClass('Humanoid')
-   if (not h or h.Health<=0) and not cfg.switch then blocked=true end
-  end
-  if not blocked and cfg.tracking and locked then
-   part,error,distance=candidate(cam,locked); if part then best=locked end
-  end
-  if not blocked and not best then
-   local score=math.huge
-   for _,p in ipairs(Players:GetPlayers()) do
-    local pp,ee,dd=candidate(cam,p)
-    if pp then local s=cfg.nearest and dd or ee; if s<score then score=s; best=p; part=pp; error=ee; distance=dd end end
-   end
+ if mode~=lastMode or resetRevision~=lastRevision or me.Character~=lastCharacter or cam~=lastCamera then
+  resetTarget(targetState); heldTime=0; smoothFrame=nil; previousOutput=nil
+  lastMode=mode; lastRevision=resetRevision; lastCharacter=me.Character; lastCamera=cam
+ end
+ local inputActive=os.clock()-lastManual<(cfg.legit and .18 or .10) or stickMagnitude>.12
+ local manual=inputActive and (not cfg.rage or cfg.releaseOnInput)
+ local selected
+ if not active then
+  smoothFrame=nil; previousOutput=nil; heldTime=0
+  lockStatus=mode=='off' and 'DESLIGADO' or 'PAUSADO / PAINEL OU PERSONAGEM'
+ elseif manual then
+  resetTarget(targetState); smoothFrame=nil; previousOutput=nil; heldTime=0
+  lockStatus='CAMERA LIVRE'
+ else
+  local previous=targetState.target
+  selected,lockStatus=updateTarget(targetState,cfg,
+   function(record,retaining)
+    if record.humanoid and record.humanoid.Health<=0 then return nil,'dead' end
+    if record.player.Character and record.player.Character~=record.character then return nil,'dead' end
+    return candidate(cam,record.player,retaining)
+   end,
+   function()
+    local best,score=nil,math.huge
+    for _,p in ipairs(Players:GetPlayers()) do
+     local record=candidate(cam,p,false)
+     if record then
+      local value=cfg.nearest and record.distance or record.error
+      if value<score then best=record; score=value end
+     end
+    end
+    return best
+   end,os.clock())
+  if not previous or not selected or previous.player~=selected.player or previous.part~=selected.part then
+   heldTime=0; smoothFrame=nil; previousOutput=nil
   end
  end
- if best~=locked then heldTime=0 end
- locked=best
- local manual=os.clock()-lastManual<(cfg.legit and .18 or .10) or stickMagnitude>.12
- if active and part and not manual and error>cfg.deadzone then
-  heldTime=heldTime+dt
-  local position=part.Position+(cfg.prediction and part.AssemblyLinearVelocity*cfg.lead or Vector3.zero)
-  local delta=position-cam.CFrame.Position
-  local localDirection=cam.CFrame:VectorToObjectSpace(delta.Magnitude>.001 and delta.Unit or cam.CFrame.LookVector)
-  local yaw=math.atan2(-localDirection.X,-localDirection.Z)
-  local pitch=math.asin(math.clamp(localDirection.Y,-1,1))
-  local function alpha(axis)
-   return aimAlpha(cfg,axis,dt,heldTime,error,distance)
+ if active and selected and not manual then
+  local direct=cfg.rage and cfg.rageStyle==1
+  local position=selected.part.Position
+  -- Direct lock always targets the current part center, without prediction offset.
+  if cfg.prediction and not cfg.rage then position=position+selected.part.AssemblyLinearVelocity*cfg.lead end
+  local base=cam.CFrame
+  local delta=position-base.Position
+  if delta.Magnitude>.001 then
+   local up=Vector3.yAxis
+   if math.abs(delta.Unit:Dot(up))>.999 then up=Vector3.zAxis end
+   local goal=CFrame.lookAt(base.Position,position,up)
+   if direct then
+    cam.CFrame=goal
+    lockStatus='TRAVA DIRETA / '..({'CABECA','CORPO','PERNA'})[cfg.part]
+    heldTime=0; smoothFrame=nil; previousOutput=nil
+   elseif selected.error>cfg.deadzone or cfg.rage then
+    heldTime=heldTime+dt
+    -- Carry the prior aim orientation across the game controller's camera reset.
+    local start=base
+    if smoothFrame then
+     start=CFrame.new(base.Position)*smoothFrame.Rotation
+     -- Use the fresh frame when the controller preserved our last orientation.
+     if previousOutput and previousOutput.LookVector:Dot(base.LookVector)>.9999 then
+      start=base
+     end
+    end
+    local localDirection=start:VectorToObjectSpace(delta.Unit)
+    local yaw=math.atan2(-localDirection.X,-localDirection.Z)
+    local pitch=math.asin(math.clamp(localDirection.Y,-1,1))
+    local ax=aimAlpha(cfg,cfg.horizontal,dt,heldTime,selected.error,selected.distance)
+    local ay=aimAlpha(cfg,cfg.vertical,dt,heldTime,selected.error,selected.distance)
+    if ax==1 and ay==1 then cam.CFrame=goal
+    else cam.CFrame=start*CFrame.Angles(0,yaw*ax,0)*CFrame.Angles(pitch*ay,0,0) end
+    smoothFrame=cam.CFrame; previousOutput=cam.CFrame
+   end
   end
-  cam.CFrame=cam.CFrame*CFrame.Angles(0,yaw*alpha(cfg.horizontal),0)*CFrame.Angles(pitch*alpha(cfg.vertical),0,0)
- else heldTime=0 end
+ else
+  smoothFrame=nil; previousOutput=nil
+ end
  elapsed=elapsed+dt
  if elapsed<(cfg.performance and 1/15 or 1/60) then return end
  local espDt=elapsed; elapsed=0
@@ -426,7 +544,7 @@ Run:BindToRenderStep('DonezeteRender',Enum.RenderPriority.Camera.Value+1,functio
  local now=os.clock()
  local playerESP=not cfg.presentation and (cfg.box or cfg.skeleton or cfg.name or cfg.health or cfg.distanceESP or cfg.weapon or cfg.head or cfg.line or cfg.teamESP or cfg.armor or cfg.ammo or cfg.radar or cfg.outline)
  overlay.Visible=not cfg.presentation; radar.Visible=cfg.radar
- footer.Text=blocked and 'ALVO ELIMINADO / REATIVE A MIRA' or (mode=='off' and 'MIRA OFF  /  ESP '..(playerESP and 'ON' or 'OFF') or string.upper(mode)..'  /  NIVEL '..cfg.pullLevel..'  /  '..(manual and 'CAMERA LIVRE' or 'PRONTO'))
+ footer.Text=lockStatus..'  /  ESP '..(playerESP and 'ON' or 'OFF')
  if not playerESP then
   for p in pairs(visuals) do destroyVisual(p) end
  end
